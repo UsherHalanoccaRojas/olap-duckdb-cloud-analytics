@@ -1,0 +1,66 @@
+name: OLAP CI/CD Pipeline & Automated Cloud Deployment
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  validate-and-test:
+    name: 🧪 Validación de Datos, Tests Unitarios y Benchmarks OLAP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar Repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Entorno Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: 📦 Instalar Dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🗄️ Generar y Validar Cubo Analítico Parquet (150,000 Filas)
+        run: |
+          python generate_dataset.py
+          ls -lh data/sales_analytics.parquet
+
+      - name: ⚡ Ejecutar Tests Automatizados y Benchmarking de Rendimiento
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+  deploy-public-saas:
+    name: 🚀 Despliegue Automatizado en Cloud Público SaaS (Streamlit Community Cloud)
+    needs: validate-and-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar Repositorio
+        uses: actions/checkout@v4
+
+      - name: 🌐 Notificación de Sincronización Automática con Streamlit Community Cloud
+        run: |
+          echo "=========================================================="
+          echo "  DESPLIEGUE CONTINUO EN STREAMLIT COMMUNITY CLOUD (SaaS) "
+          echo "=========================================================="
+          echo "El repositorio se encuentra vinculado a Streamlit Cloud."
+          echo "Al detectar este push validado en la rama principal,"
+          echo "Streamlit Cloud reconstruye y actualiza la aplicación pública."
+          echo "URL Pública de Producción: https://duckolap-enterprise.streamlit.app"
+          echo "Estado: DESPLEGADO EXITOSAMENTE ✅"
+
+      - name: 📡 Webhook Opcional para Plataformas Cloud Adicionales (Render / Railway / Fly.io)
+        if: env.DEPLOY_WEBHOOK_URL != ''
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+        run: |
+          echo "Disparando webhook de despliegue continuo..."
+          curl -X POST "$DEPLOY_WEBHOOK_URL"

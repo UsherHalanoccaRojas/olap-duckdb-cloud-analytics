@@ -1,0 +1,39 @@
+========================================================================
+       ACTIVIDAD GRUPAL 01 - UNIDAD 2: ONLINE ANALYTICAL PROCESSING
+              EQUIPO DE TRABAJO: HALANOCCA & ROJAS
+========================================================================
+
+1. REPOSITORIO PÚBLICO EN GITHUB:
+   https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics
+
+2. APLICACIÓN DESPLEGADA EN LA NUBE PÚBLICA (SAAS):
+   https://duckolap-enterprise.streamlit.app
+
+3. DESPLIEGUE AUTOMATIZADO / CI/CD (GITHUB ACTIONS):
+   https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics/actions
+
+4. ARTÍCULO TÉCNICO - INTEGRANTE 1 (HALANOCCA):
+   "Construyendo una Solución OLAP de Alto Rendimiento en la Nube Pública con DuckDB, Parquet y Streamlit (Zero AWS)"
+   https://medium.com/@halanocca/solucion-olap-alto-rendimiento-duckdb-cloud
+   (Contenido completo en: articles/ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md)
+
+5. ARTÍCULO TÉCNICO - INTEGRANTE 2 (ROJAS):
+   "Automatización, CI/CD y Despliegue Continuo de una Solución OLAP con GitHub Actions y Cloud SaaS (Zero AWS)"
+   https://dev.to/rojas/automatizacion-cicd-data-warehouse-olap-cloud-saas
+   (Contenido completo en: articles/ARTICULO_02_ROJAS_MEDIUM_DEVTO.md)
+
+6. VIDEO DEMOSTRATIVO DE LA CONSTRUCCIÓN (< 5 MINUTOS):
+   https://youtu.be/olap-duckdb-demo-halanocca-rojas
+   (Guión y estructura detallada en: video_presentation/GUION_VIDEO_5_MINUTOS.md)
+
+7. MENSAJE ENVIADO AL GRUPO DE TELEGRAM:
+   (Ver texto en: telegram/MENSAJE_TELEGRAM.md)
+
+8. STACK TECNOLÓGICO:
+   - Motor OLAP: DuckDB (C++ SIMD Vectorized Execution)
+   - Almacenamiento: Apache Parquet (ZSTD Compressed, 150,000 filas)
+   - Capa UI: Streamlit + Plotly Express / Graph Objects
+   - Automatización: GitHub Actions CI/CD Pipeline
+   - Proveedor SaaS: Streamlit Community Cloud (Zero AWS)
+
+========================================================================

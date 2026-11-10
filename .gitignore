@@ -1,0 +1,24 @@
+# Entornos virtuales Python
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs y bases de datos temporales
+*.log
+*.tmp
+
+# Archivos de sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Archivo comprimido final de entrega
+*.zip
