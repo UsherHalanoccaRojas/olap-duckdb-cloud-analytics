@@ -1,6 +1,6 @@
 """
 DuckOLAP Enterprise: Solución Analítica Online Analytical Processing (OLAP)
-Actividad Grupal 01 - Unidad 2 | Integrantes: Halanocca & Rojas
+Unidad 2 | Equipo: Halanocca, Yizuka & Gino
 Tecnologías: DuckDB, Streamlit, Apache Parquet, MotherDuck Cloud SaaS, GitHub Actions (Zero AWS)
 """
 
@@ -104,8 +104,8 @@ with col_head1:
     st.markdown('<div class="main-title">⚡ DuckOLAP Enterprise Analytics</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-title">Motor OLAP Multidimensional de Alto Rendimiento en la Nube Pública (Zero AWS)</div>', unsafe_allow_html=True)
     st.markdown("""
-        <span class="badge-pill">🏛️ Actividad Grupal 01 - U2</span>
-        <span class="badge-pill">👥 Autores: Halanocca & Rojas</span>
+        <span class="badge-pill">🏛️ Arquitectura OLAP Cloud</span>
+        <span class="badge-pill">👥 Autores: Halanocca, Yizuka & Gino</span>
         <span class="badge-pill-green">🚀 Motor: DuckDB C++ Vectorized + Parquet</span>
         <span class="badge-pill-green">☁️ Cloud SaaS: MotherDuck / Streamlit Cloud</span>
     """, unsafe_allow_html=True)
@@ -181,7 +181,10 @@ with st.sidebar:
     st.subheader("⚙️ Configuración del Motor")
     cloud_mode = st.toggle("Modo Híbrido MotherDuck SaaS", value=False)
     if cloud_mode:
-        st.info("🌐 Conexión híbrida DuckDB + MotherDuck Cloud activada (SaaS OLAP Serverless).")
+        if engine.is_cloud_connected:
+            st.info("🌐 Conexión híbrida DuckDB + MotherDuck Cloud activada (SaaS OLAP Serverless).")
+        else:
+            st.warning("⚠️ Token `MOTHERDUCK_TOKEN` no configurado. Operando en fallback local DuckDB en memoria.")
     else:
         st.success("⚡ Motor local en memoria C++ Vectorizado (Sub-milisegundo).")
 
@@ -189,16 +192,11 @@ with st.sidebar:
 filters = {}
 if isinstance(date_filter, (list, tuple)) and len(date_filter) == 2:
     filters["order_date"] = (str(date_filter[0]), str(date_filter[1]))
-if selected_regions:
-    filters["region"] = selected_regions
-if selected_countries:
-    filters["country"] = selected_countries
-if selected_categories:
-    filters["category"] = selected_categories
-if selected_segments:
-    filters["customer_segment"] = selected_segments
-if selected_channels:
-    filters["sales_channel"] = selected_channels
+filters["region"] = selected_regions
+filters["country"] = selected_countries
+filters["category"] = selected_categories
+filters["customer_segment"] = selected_segments
+filters["sales_channel"] = selected_channels
 
 # Pestañas de Navegación del Sistema OLAP
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -214,6 +212,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ==========================================
 with tab1:
     kpis = engine.get_kpis(filters)
+    if kpis["total_transactions"] == 0:
+        st.warning("No hay transacciones para la combinación de filtros seleccionada. Ajuste los filtros en la barra lateral.")
     
     # Fila de tarjetas KPI
     kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
@@ -340,35 +340,40 @@ with tab2:
         
         with col_r2:
             df_roll, r_ms = engine.get_time_series_rollup(level=rollup_level, filters=filters)
-            fig_roll = px.bar(
-                df_roll,
-                x="period",
-                y="revenue",
-                title=f"Resultado de ROLL-UP a nivel '{rollup_level}' ({len(df_roll)} filas devueltas en {r_ms} ms)",
-                color="profit",
-                color_continuous_scale="Viridis",
-                labels={"period": "Periodo Temporal", "revenue": "Ingresos ($)", "profit": "Utilidad Neta ($)"}
-            )
-            st.plotly_chart(fig_roll, use_container_width=True)
-            
-            with st.expander("Ver tabla de datos agregados y Window Functions"):
-                st.dataframe(df_roll, use_container_width=True)
+            if df_roll.empty:
+                st.warning("No hay datos temporales para los filtros seleccionados.")
+            else:
+                fig_roll = px.bar(
+                    df_roll,
+                    x="period",
+                    y="revenue",
+                    title=f"Resultado de ROLL-UP a nivel '{rollup_level}' ({len(df_roll)} filas devueltas en {r_ms} ms)",
+                    color="profit",
+                    color_continuous_scale="Viridis",
+                    labels={"period": "Periodo Temporal", "revenue": "Ingresos ($)", "profit": "Utilidad Neta ($)"}
+                )
+                st.plotly_chart(fig_roll, use_container_width=True)
+                
+                with st.expander("Ver tabla de datos agregados y Window Functions"):
+                    st.dataframe(df_roll, use_container_width=True)
 
     elif "DRILL-DOWN" in op_type:
         st.write("Navegación jerárquica: **Región Continental ➔ País ➔ Categoría de Producto**")
         df_drill, d_ms = engine.get_drill_down_hierarchy(filters=filters)
-        
-        fig_sun = px.sunburst(
-            df_drill,
-            path=["region", "country", "category"],
-            values="total_revenue",
-            color="margin_pct",
-            color_continuous_scale="RdYlGn",
-            title=f"Exploración Jerárquica Sunburst (Drill-Down DuckDB en {d_ms} ms)",
-            labels={"margin_pct": "Margen %"}
-        )
-        fig_sun.update_layout(height=520, margin=dict(l=10, r=10, t=40, b=10))
-        st.plotly_chart(fig_sun, use_container_width=True)
+        if df_drill.empty:
+            st.warning("No hay datos jerárquicos para los filtros seleccionados.")
+        else:
+            fig_sun = px.sunburst(
+                df_drill,
+                path=["region", "country", "category"],
+                values="total_revenue",
+                color="margin_pct",
+                color_continuous_scale="RdYlGn",
+                title=f"Exploración Jerárquica Sunburst (Drill-Down DuckDB en {d_ms} ms)",
+                labels={"margin_pct": "Margen %"}
+            )
+            fig_sun.update_layout(height=520, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_sun, use_container_width=True)
         
     elif "SLICE & DICE" in op_type:
         col_sd1, col_sd2 = st.columns([1, 2])
@@ -397,16 +402,19 @@ with tab2:
         
         with col_sd2:
             df_sd, sd_ms = engine.get_slice_and_dice(group_by_col=dim_choice, metric=metric_choice, filters=filters)
-            fig_bar = px.bar(
-                df_sd,
-                x="dimension",
-                y=metric_choice,
-                color="avg_margin_pct",
-                title=f"Slice & Dice sobre '{dim_choice}' (Ejecutado en {sd_ms} ms)",
-                text_auto=True,
-                color_continuous_scale="Blues"
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+            if df_sd.empty:
+                st.warning("No hay datos para Slice & Dice con los filtros actuales.")
+            else:
+                fig_bar = px.bar(
+                    df_sd,
+                    x="dimension",
+                    y=metric_choice,
+                    color="avg_margin_pct",
+                    title=f"Slice & Dice sobre '{dim_choice}' (Ejecutado en {sd_ms} ms)",
+                    text_auto=True,
+                    color_continuous_scale="Blues"
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
 
 # ==========================================
 # TAB 3: MATRIZ PIVOT & CUBE
@@ -427,41 +435,56 @@ with tab3:
     df_pivot, p_ms = engine.get_pivot_matrix(row_dim=pivot_row, col_dim=pivot_col, metric="net_revenue", filters=filters)
     
     st.markdown(f"**Matriz Pivotada de Ingresos Netos ($):** *(Calculada en {p_ms} ms)*")
-    st.dataframe(
-        df_pivot.fillna(0.0),
-        use_container_width=True
-    )
+    if df_pivot.empty:
+        st.warning("No hay datos para construir la matriz PIVOT con los filtros actuales.")
+    else:
+        st.dataframe(
+            df_pivot.fillna(0.0),
+            use_container_width=True
+        )
     
+    st.markdown("---")
+    st.subheader("🧊 Subtotales Multidimensionales (ROLLUP / GROUPING SETS)")
+    st.caption("Cálculo canónico de subtotales jerárquicos por Región y Categoría en una sola pasada")
+    df_cube, c_ms = engine.get_cube_rollup_query(filters=filters)
+    if df_cube.empty:
+        st.warning("No hay datos para el cálculo de ROLLUP.")
+    else:
+        st.markdown(f"**Cubo ROLLUP (Región ➔ Categoría):** *(Ejecutado en {c_ms} ms)*")
+        st.dataframe(df_cube, use_container_width=True)
+
     st.markdown("---")
     st.subheader("📊 Análisis de Pareto (Ley 80/20)")
     st.caption("Cálculo acumulativo con Window Function `SUM() OVER (ORDER BY revenue DESC)`")
     df_pareto, par_ms = engine.get_pareto_analysis(dimension=pivot_row, filters=filters)
-    
-    fig_pareto = go.Figure()
-    fig_pareto.add_trace(go.Bar(
-        x=df_pareto["item"],
-        y=df_pareto["revenue"],
-        name="Ingresos ($)",
-        marker_color="#0288D1",
-        yaxis="y1"
-    ))
-    fig_pareto.add_trace(go.Scatter(
-        x=df_pareto["item"],
-        y=df_pareto["cumulative_pct"],
-        name="% Acumulado (Pareto)",
-        marker_color="#D32F2F",
-        line=dict(width=3, dash="dot"),
-        yaxis="y2"
-    ))
-    fig_pareto.update_layout(
-        title=f"Diagrama de Pareto sobre {pivot_row} ({par_ms} ms)",
-        yaxis=dict(title="Ingresos Netos ($)"),
-        yaxis2=dict(title="% Acumulado", overlaying="y", side="right", range=[0, 105]),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=20, r=20, t=50, b=20),
-        height=380
-    )
-    st.plotly_chart(fig_pareto, use_container_width=True)
+    if df_pareto.empty:
+        st.warning("No hay datos para el análisis de Pareto.")
+    else:
+        fig_pareto = go.Figure()
+        fig_pareto.add_trace(go.Bar(
+            x=df_pareto["item"],
+            y=df_pareto["revenue"],
+            name="Ingresos ($)",
+            marker_color="#0288D1",
+            yaxis="y1"
+        ))
+        fig_pareto.add_trace(go.Scatter(
+            x=df_pareto["item"],
+            y=df_pareto["cumulative_pct"],
+            name="% Acumulado (Pareto)",
+            marker_color="#D32F2F",
+            line=dict(width=3, dash="dot"),
+            yaxis="y2"
+        ))
+        fig_pareto.update_layout(
+            title=f"Diagrama de Pareto sobre {pivot_row} ({par_ms} ms)",
+            yaxis=dict(title="Ingresos Netos ($)"),
+            yaxis2=dict(title="% Acumulado", overlaying="y", side="right", range=[0, 105]),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=20, r=20, t=50, b=20),
+            height=380
+        )
+        st.plotly_chart(fig_pareto, use_container_width=True)
 
 # ==========================================
 # TAB 4: CONSOLA SQL ANALÍTICA & BENCHMARKS
@@ -614,28 +637,27 @@ with tab5:
     ```
     """)
     
-    st.markdown("### 📋 Cuadro de Enlaces de la Actividad Grupal")
+    st.markdown("### 📋 Resumen de Recursos y Stack del Proyecto")
     st.info("""
-    Los siguientes enlaces forman parte de la entrega oficial de la **Actividad Grupal 01 - Unidad 2**:
+    Componentes técnicos principales de **DuckOLAP Enterprise** (Zero AWS):
     """)
     
     st.markdown("""
-    | Requisito | Recurso / Plataforma | Enlace / Ubicación | Responsable |
+    | Componente | Tecnología / Plataforma | Ubicación en el Repositorio | Descripción |
     | :--- | :--- | :--- | :--- |
-    | **Repositorio Público** | GitHub Repository | `https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics` | Equipo Halanocca & Rojas |
-    | **Despliegue Cloud SaaS** | Streamlit Community Cloud | `https://duckolap-enterprise.streamlit.app` | Equipo Halanocca & Rojas |
-    | **Artículo Técnico 1** | Medium / Dev.to / HashNode | `https://medium.com/@halanocca/solucion-olap-alto-rendimiento-duckdb-cloud` | Integrante 1: Halanocca |
-    | **Artículo Técnico 2** | Medium / Dev.to / HashNode | `https://dev.to/rojas/automatizacion-cicd-data-warehouse-olap-cloud-saas` | Integrante 2: Rojas |
-    | **Video Demostrativo (<5 min)** | YouTube / TikTok / Facebook | `https://youtu.be/olap-duckdb-demo-halanocca-rojas` | Equipo Halanocca & Rojas |
-    | **Mensaje de Telegram** | Grupo de Telegram del Curso | Ver archivo `telegram/MENSAJE_TELEGRAM.md` | Ambos Integrantes |
-    | **Archivo de Entrega ZIP** | Archivo Comprimido ZIP | `AG02_IN_U02_HALANOCCA_ROJAS_ENTREGA.zip` | Entregado en plataforma |
+    | **Motor Analítico OLAP** | DuckDB C++ Vectorizado | `olap_engine.py` | Roll-up, Drill-down, Slice & Dice, PIVOT, ROLLUP y Pareto |
+    | **Generador de Cubo** | DuckDB + Apache Parquet (ZSTD) | `generate_dataset.py` | Genera 150,000 registros (~3.6 MB) |
+    | **Interfaz Analítica** | Streamlit + Plotly | `app.py` | Dashboard interactivo y consola SQL con `EXPLAIN` |
+    | **Suite de Pruebas** | Python `unittest` | `tests/test_olap.py` | Pruebas de integridad contable y SLA (< 150 ms) |
+    | **CI/CD & Contenedores** | GitHub Actions + Docker | `.github/workflows/ci-cd.yml`, `Dockerfile` | Validación automática y despliegue en Streamlit Cloud |
+    | **Artículo Técnico** | Medium | `articles/ARTICULO_MEDIUM_DUCKOLAP.md` | Guía arquitectónica y de implementación paso a paso |
     """)
 
 # Pie de página
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #777; font-size: 0.85rem;">
-    Actividad Grupal 01 - Unidad 2: Online Analytical Processing (OLAP) | © 2026 Integrantes: Halanocca & Rojas<br>
-    Construido con Python, DuckDB, Streamlit, Parquet y Desplegado en Public Cloud SaaS.
+    DuckOLAP Enterprise: Online Analytical Processing (OLAP) | © 2026 Equipo: Halanocca, Yizuka & Gino<br>
+    Construido con Python, DuckDB, Streamlit, Parquet y Desplegado en Public Cloud SaaS (Zero AWS).
 </div>
 """, unsafe_allow_html=True)

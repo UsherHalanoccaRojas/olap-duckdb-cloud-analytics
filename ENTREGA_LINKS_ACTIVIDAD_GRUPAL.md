@@ -1,24 +1,23 @@
 # 📋 ENTREGA OFICIAL DE ENLACES: ACTIVIDAD GRUPAL 01 - UNIDAD 2
 ## Online Analytical Processing (OLAP) Solution
 
-**Curso / Unidad:** Actividad Grupal 01 - Unidad 2: Online Analytical Processing  
-**Equipo de Trabajo:** Halanocca & Rojas  
+**Curso / Unidad:** Unidad 2: Online Analytical Processing  
+**Equipo de Trabajo:** Halanocca, Yizuka & Gino  
 **Código del Proyecto:** `AG02_IN_U02_HALANOCCA_ROJAS`  
+**Nombre de Repositorio GitHub Sugerido:** `olap-duckdb-cloud-analytics`  
 **Tecnología del Motor OLAP:** DuckDB C++ Vectorizado, Apache Parquet, Streamlit UI, GitHub Actions (Zero AWS)  
 
 ---
 
 ## 🌐 1. Cuadro Resumen de Enlaces Solicitados
 
-| Requisito Solicitado | Plataforma / Servicio | Enlace Oficial de Entrega | Responsable |
+| Requisito Solicitado | Plataforma / Servicio | Enlace / Archivo | Responsable |
 | :--- | :--- | :--- | :--- |
-| **Repositorio Público para la App** | GitHub | [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics) | Halanocca & Rojas |
-| **Despliegue en la Nube Pública (SaaS)** | Streamlit Community Cloud | [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app) | Halanocca & Rojas |
-| **Despliegue Automatizado (CI/CD)** | GitHub Actions | [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics/actions](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics/actions) | Halanocca & Rojas |
-| **Artículo Técnico (Integrante 1)** | Medium / Dev.to | [https://medium.com/@halanocca/solucion-olap-alto-rendimiento-duckdb-cloud](https://medium.com/@halanocca/solucion-olap-alto-rendimiento-duckdb-cloud) | Integrante 1: Halanocca |
-| **Artículo Técnico (Integrante 2)** | Dev.to / HashNode | [https://dev.to/rojas/automatizacion-cicd-data-warehouse-olap-cloud-saas](https://dev.to/rojas/automatizacion-cicd-data-warehouse-olap-cloud-saas) | Integrante 2: Rojas |
-| **Video Demostrativo (< 5 min)** | YouTube / Video Público | [https://youtu.be/olap-duckdb-demo-halanocca-rojas](https://youtu.be/olap-duckdb-demo-halanocca-rojas) | Halanocca & Rojas |
-| **Mensaje de Telegram Enviado** | Telegram Group | Ver archivo `telegram/MENSAJE_TELEGRAM.md` | Halanocca & Rojas |
+| **Repositorio Público para la App** | GitHub | `https://github.com/<tu-usuario>/olap-duckdb-cloud-analytics` | Halanocca, Yizuka & Gino |
+| **Despliegue en la Nube Pública (SaaS)** | Streamlit Community Cloud | [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app) | Halanocca, Yizuka & Gino |
+| **Despliegue Automatizado (CI/CD)** | GitHub Actions | `.github/workflows/ci-cd.yml` | Halanocca, Yizuka & Gino |
+| **Artículo Principal para Medium** | Medium | `articles/ARTICULO_MEDIUM_DUCKOLAP.md` | Halanocca, Yizuka & Gino |
+| **Artículos Complementarios** | Medium / Dev.to | `articles/ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md`, `articles/ARTICULO_02_ROJAS_MEDIUM_DEVTO.md` | Equipo |
 
 ---
 
@@ -72,16 +71,13 @@ AG02_IN_U02_HALANOCCA_ROJAS/
 ├── .streamlit/
 │   └── config.toml                     <- Configuración del servidor y tema SaaS
 ├── articles/
-│   ├── ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md  <- Artículo completo Integrante 1 (Halanocca)
-│   └── ARTICULO_02_ROJAS_MEDIUM_DEVTO.md      <- Artículo completo Integrante 2 (Rojas)
+│   ├── ARTICULO_MEDIUM_DUCKOLAP.md            <- Artículo completo listo para Medium
+│   ├── ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md  <- Artículo complementario 1
+│   └── ARTICULO_02_ROJAS_MEDIUM_DEVTO.md      <- Artículo complementario 2
 ├── data/
 │   └── sales_analytics.parquet         <- Cubo analítico Parquet (150,000 filas)
 ├── tests/
-│   └── test_olap.py                    <- 7 Pruebas unitarias y benchmarks de SLA
-├── telegram/
-│   └── MENSAJE_TELEGRAM.md             <- Mensaje formateado para el grupo del curso
-├── video_presentation/
-│   └── GUION_VIDEO_5_MINUTOS.md        <- Guión técnico segundo a segundo (< 5 min)
+│   └── test_olap.py                    <- 10 Pruebas unitarias, seguridad SQL y benchmarks de SLA
 ├── app.py                              <- Aplicación interactiva Streamlit OLAP
 ├── olap_engine.py                      <- Servicio analítico DuckDB C++ Vectorizado
 ├── generate_dataset.py                 <- Generador de 150k registros en Parquet ZSTD
@@ -93,3 +89,4 @@ AG02_IN_U02_HALANOCCA_ROJAS/
 ├── ENTREGA_LINKS_ACTIVIDAD_GRUPAL.md  <- Este documento con enlaces oficiales
 └── AG02_IN_U02_HALANOCCA_ROJAS_ENTREGA.zip <- Archivo comprimido con toda la entrega
 ```
+

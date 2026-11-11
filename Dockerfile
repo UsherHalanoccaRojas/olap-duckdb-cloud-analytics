@@ -2,7 +2,7 @@
 FROM python:3.12-slim
 
 # Metadatos del contenedor
-LABEL maintainer="Equipo Halanocca & Rojas"
+LABEL maintainer="Equipo Halanocca, Yizuka & Gino"
 LABEL description="Solución OLAP con DuckDB y Streamlit desplegada en Cloud Público (Zero AWS)"
 
 # Variables de entorno para Python y Streamlit
@@ -36,3 +36,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 # Comando de inicio del servidor Streamlit
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+

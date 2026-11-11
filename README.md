@@ -7,10 +7,10 @@
 [![Zero AWS](https://img.shields.io/badge/Cloud%20Provider-Zero%20AWS%20(Open%20SaaS)-success.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-> **Actividad Grupal 01 - Unidad 2: Online Analytical Processing (OLAP)**  
-> **Integrantes del Equipo:** Halanocca & Rojas  
+> **Actividad Grupal - Unidad 2: Online Analytical Processing (OLAP)**  
+> **Integrantes del Equipo:** Halanocca_Yizuka_Gino  
 > **Aplicación en Vivo:** [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app)  
-> **Repositorio Público:** [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics)
+> **Repositorio Público:** `olap-duckdb-cloud-analytics`
 
 ---
 
@@ -136,7 +136,7 @@ El archivo [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) implemen
 2. **Build & Test**:
    - Descarga el código y configura Python 3.12.
    - Instala dependencias y compila el dataset Parquet.
-   - Ejecuta las 7 pruebas unitarias de [`tests/test_olap.py`](tests/test_olap.py).
+   - Ejecuta las 10 pruebas unitarias de [`tests/test_olap.py`](tests/test_olap.py).
    - Valida que la latencia del motor analítico se mantenga bajo el SLA de 150 milisegundos.
 3. **Deploy Automatizado**:
    - Streamlit Community Cloud detecta los cambios validados y actualiza la aplicación en tiempo real sin tiempo de inactividad (*zero-downtime*).
@@ -155,17 +155,17 @@ El archivo [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) implemen
 
 ---
 
-## 🔗 7. Enlaces Oficiales de Entrega
+## 🔗 7. Enlaces y Documentación
 
-- **Repositorio Público**: [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics)
+- **Nombre Sugerido del Repositorio GitHub**: `olap-duckdb-cloud-analytics`
 - **Aplicación Desplegada en Cloud SaaS**: [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app)
-- **Artículo Técnico - Integrante 1 (Halanocca)**: [Ver en carpeta articles/](articles/ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md)
-- **Artículo Técnico - Integrante 2 (Rojas)**: [Ver en carpeta articles/](articles/ARTICULO_02_ROJAS_MEDIUM_DEVTO.md)
-- **Guión y Estructura del Video Demostrativo (< 5 min)**: [Ver en carpeta video_presentation/](video_presentation/GUION_VIDEO_5_MINUTOS.md)
-- **Mensaje Oficial para Grupo de Telegram**: [Ver en carpeta telegram/](telegram/MENSAJE_TELEGRAM.md)
+- **Artículo Principal para Medium (Completo)**: [Ver en carpeta articles/](articles/ARTICULO_MEDIUM_DUCKOLAP.md)
+- **Artículo Técnico 1 (Arquitectura OLAP)**: [Ver en carpeta articles/](articles/ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md)
+- **Artículo Técnico 2 (CI/CD y DataOps)**: [Ver en carpeta articles/](articles/ARTICULO_02_ROJAS_MEDIUM_DEVTO.md)
 
 ---
 
 ## 📄 Licencia
 
 Distribuido bajo la Licencia MIT. Consulte `LICENSE` para más detalles.
+

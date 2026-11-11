@@ -175,3 +175,4 @@ La inspección del plan físico con `EXPLAIN` reveló que DuckDB ejecuta escaneo
 - **Repositorio Público en GitHub:** [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics)
 - **Aplicación Desplegada en Cloud SaaS:** [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app)
 - **Segundo Artículo (CI/CD y Automatización por Rojas):** [Ver Artículo de Rojas](ARTICULO_02_ROJAS_MEDIUM_DEVTO.md)
+

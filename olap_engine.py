@@ -4,6 +4,7 @@ Provee operaciones OLAP fundamentales: Roll-up, Drill-down, Slice & Dice, Pivot,
 """
 
 import os
+import re
 import time
 from typing import Dict, Any, List, Optional, Tuple
 import duckdb
@@ -11,16 +12,50 @@ import pandas as pd
 
 DEFAULT_PARQUET = os.path.join(os.path.dirname(__file__), "data", "sales_analytics.parquet")
 
+VALID_FILTER_COLS = {
+    "order_date", "region", "country", "category",
+    "customer_segment", "sales_channel", "payment_method",
+    "order_year", "order_quarter", "order_month",
+}
+VALID_DIMENSIONS = {
+    "region", "country", "category",
+    "customer_segment", "sales_channel", "payment_method",
+}
+VALID_SLICE_METRICS = {
+    "total_revenue", "total_profit", "transactions", "total_units", "avg_margin_pct",
+}
+VALID_PIVOT_METRICS = {
+    "net_revenue", "net_profit", "gross_sales", "quantity",
+}
+READ_ONLY_STARTS = ("SELECT", "WITH", "PIVOT", "UNPIVOT", "DESCRIBE", "SHOW", "SUMMARIZE", "EXPLAIN")
+FORBIDDEN_SQL_PATTERN = re.compile(
+    r"\b(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|REPLACE|TRUNCATE|ATTACH|DETACH|COPY|INSTALL|LOAD|PRAGMA|CALL|EXPORT|IMPORT)\b",
+    re.IGNORECASE,
+)
+
+
+def _escape_sql_literal(value: Any) -> str:
+    return str(value).replace("'", "''")
+
+
 class OLAPEngine:
     def __init__(self, parquet_path: str = DEFAULT_PARQUET, motherduck_token: Optional[str] = None):
         """
         Inicializa la conexión con DuckDB en memoria o apuntando a MotherDuck SaaS.
         """
         self.parquet_path = parquet_path.replace(os.sep, "/")
-        self.motherduck_token = motherduck_token
-        
-        # Conexión local en memoria optimizada para OLAP
-        self.con = duckdb.connect(database=":memory:")
+        self.motherduck_token = motherduck_token or os.getenv("MOTHERDUCK_TOKEN")
+        self.is_cloud_connected = False
+
+        if self.motherduck_token:
+            try:
+                self.con = duckdb.connect(f"md:?motherduck_token={self.motherduck_token}")
+                self.is_cloud_connected = True
+            except Exception:
+                self.con = duckdb.connect(database=":memory:")
+        else:
+            self.con = duckdb.connect(database=":memory:")
+
         self._configure_engine()
         self._load_table()
 
@@ -35,30 +70,36 @@ class OLAPEngine:
         if not os.path.exists(self.parquet_path):
             from generate_dataset import generate_olap_dataset
             generate_olap_dataset(num_rows=150000, output_path=self.parquet_path)
-        
+
+        escaped_path = _escape_sql_literal(self.parquet_path)
         self.con.execute(f"""
             CREATE OR REPLACE VIEW sales_cube AS 
-            SELECT * FROM read_parquet('{self.parquet_path}');
+            SELECT * FROM read_parquet('{escaped_path}');
         """)
 
     def _build_where_clause(self, filters: Optional[Dict[str, Any]] = None) -> str:
         """Construye dinámicamente cláusulas WHERE para operaciones Slice & Dice."""
         if not filters:
             return ""
-        
+
         clauses = []
         for col, val in filters.items():
-            if val is None or val == "Todos" or (isinstance(val, list) and len(val) == 0):
+            if col not in VALID_FILTER_COLS:
+                raise ValueError(f"Columna de filtro no permitida: {col}")
+            if val is None or val == "Todos":
                 continue
             if isinstance(val, list):
-                val_list = ", ".join([f"'{str(v)}'" for v in val])
-                clauses.append(f"{col} IN ({val_list})")
+                if len(val) == 0:
+                    clauses.append("1 = 0")
+                else:
+                    val_list = ", ".join([f"'{_escape_sql_literal(v)}'" for v in val])
+                    clauses.append(f"{col} IN ({val_list})")
             elif isinstance(val, tuple) and len(val) == 2:
                 # Rango de fechas o valores numéricos
-                clauses.append(f"{col} BETWEEN '{val[0]}' AND '{val[1]}'")
+                clauses.append(f"{col} BETWEEN '{_escape_sql_literal(val[0])}' AND '{_escape_sql_literal(val[1])}'")
             else:
-                clauses.append(f"{col} = '{val}'")
-        
+                clauses.append(f"{col} = '{_escape_sql_literal(val)}'")
+
         return "WHERE " + " AND ".join(clauses) if clauses else ""
 
     def get_kpis(self, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -132,10 +173,24 @@ class OLAPEngine:
         elapsed_ms = (time.perf_counter() - start) * 1000
         return df, round(elapsed_ms, 2)
 
-    def get_slice_and_dice(self, group_by_col: str, metric: str = "net_revenue", filters: Optional[Dict[str, Any]] = None, limit: int = 15) -> Tuple[pd.DataFrame, float]:
+    def _run_timed_query(self, query: str) -> Tuple[pd.DataFrame, float]:
+        """Ejecuta una consulta SQL y retorna el DataFrame junto con la latencia en ms."""
+        start = time.perf_counter()
+        df = self.con.execute(query).df()
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        return df, round(elapsed_ms, 2)
+
+    def get_slice_and_dice(self, group_by_col: str, metric: str = "total_revenue", filters: Optional[Dict[str, Any]] = None, limit: int = 15) -> Tuple[pd.DataFrame, float]:
         """
         Operación OLAP: SLICE & DICE multidimensional por cualquier dimensión de negocio.
         """
+        if group_by_col not in VALID_DIMENSIONS:
+            raise ValueError(f"Dimensión no permitida: {group_by_col}")
+        normalized_metric = "total_revenue" if metric == "net_revenue" else metric
+        if normalized_metric not in VALID_SLICE_METRICS:
+            raise ValueError(f"Métrica no permitida: {metric}")
+        safe_limit = max(1, int(limit))
+
         where_clause = self._build_where_clause(filters)
         query = f"""
         SELECT 
@@ -148,18 +203,20 @@ class OLAPEngine:
         FROM sales_cube
         {where_clause}
         GROUP BY 1
-        ORDER BY {metric} DESC
-        LIMIT {limit};
+        ORDER BY {normalized_metric} DESC
+        LIMIT {safe_limit};
         """
-        start = time.perf_counter()
-        df = self.con.execute(query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return df, round(elapsed_ms, 2)
+        return self._run_timed_query(query)
 
     def get_pivot_matrix(self, row_dim: str = "category", col_dim: str = "region", metric: str = "net_revenue", filters: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, float]:
         """
         Operación OLAP: PIVOT (Matriz cruzada multidimensional nativa en DuckDB).
         """
+        if row_dim not in VALID_DIMENSIONS or col_dim not in VALID_DIMENSIONS:
+            raise ValueError("Dimensión de PIVOT no permitida.")
+        if metric not in VALID_PIVOT_METRICS:
+            raise ValueError(f"Métrica de PIVOT no permitida: {metric}")
+
         where_clause = self._build_where_clause(filters)
         query = f"""
         PIVOT (
@@ -172,10 +229,7 @@ class OLAPEngine:
         GROUP BY {row_dim}
         ORDER BY {row_dim} ASC;
         """
-        start = time.perf_counter()
-        df = self.con.execute(query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return df, round(elapsed_ms, 2)
+        return self._run_timed_query(query)
 
     def get_drill_down_hierarchy(self, filters: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, float]:
         """
@@ -196,15 +250,15 @@ class OLAPEngine:
         GROUP BY region, country, category
         ORDER BY region, total_revenue DESC;
         """
-        start = time.perf_counter()
-        df = self.con.execute(query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return df, round(elapsed_ms, 2)
+        return self._run_timed_query(query)
 
     def get_pareto_analysis(self, dimension: str = "category", filters: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, float]:
         """
         Análisis Pareto (80/20) usando Window Functions avanzadas (SUM OVER ROWS).
         """
+        if dimension not in VALID_DIMENSIONS:
+            raise ValueError(f"Dimensión de Pareto no permitida: {dimension}")
+
         where_clause = self._build_where_clause(filters)
         query = f"""
         WITH ranked AS (
@@ -226,22 +280,20 @@ class OLAPEngine:
         SELECT 
             item,
             ROUND(revenue, 2) AS revenue,
-            ROUND((revenue / global_revenue) * 100, 2) AS pct_of_total,
-            ROUND((running_total / global_revenue) * 100, 2) AS cumulative_pct
+            ROUND((revenue / NULLIF(global_revenue, 0)) * 100, 2) AS pct_of_total,
+            ROUND((running_total / NULLIF(global_revenue, 0)) * 100, 2) AS cumulative_pct
         FROM cumulative
         ORDER BY revenue DESC;
         """
-        start = time.perf_counter()
-        df = self.con.execute(query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return df, round(elapsed_ms, 2)
+        return self._run_timed_query(query)
 
-    def get_cube_rollup_query(self) -> Tuple[pd.DataFrame, float]:
+    def get_cube_rollup_query(self, filters: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, float]:
         """
         Operación OLAP: CUBE / ROLLUP canónico con GROUPING SETS.
         Demuestra la computación de sub-totales multidimensionales en una sola pasada.
         """
-        query = """
+        where_clause = self._build_where_clause(filters)
+        query = f"""
         SELECT 
             COALESCE(region, '--- TOTAL GLOBAL ---') AS region,
             COALESCE(category, '--- TOTAL REGION ---') AS category,
@@ -249,30 +301,37 @@ class OLAPEngine:
             ROUND(SUM(net_revenue), 2) AS total_revenue,
             ROUND(AVG(profit_margin_pct), 2) AS avg_margin
         FROM sales_cube
+        {where_clause}
         GROUP BY ROLLUP (region, category)
         ORDER BY 
             GROUPING(region), region, 
             GROUPING(category), category;
         """
-        start = time.perf_counter()
-        df = self.con.execute(query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return df, round(elapsed_ms, 2)
+        return self._run_timed_query(query)
 
-    def execute_custom_query(self, sql_query: str) -> Tuple[pd.DataFrame, float, str]:
+    def execute_custom_query(self, sql_query: str, read_only: bool = True) -> Tuple[pd.DataFrame, float, str]:
         """
-        Ejecuta consultas analíticas SQL arbitrarias con medición de latencia y plan EXPLAIN.
+        Ejecuta consultas analíticas SQL con medición de latencia y plan EXPLAIN.
+        Por defecto restringe la ejecución a sentencias de solo lectura.
         """
-        start = time.perf_counter()
-        df = self.con.execute(sql_query).df()
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        
+        cleaned = sql_query.strip()
+        if not cleaned:
+            raise ValueError("La consulta SQL no puede estar vacía.")
+
+        if read_only:
+            upper_sql = re.sub(r"(--[^\n]*|/\*.*?\*/)", " ", cleaned, flags=re.DOTALL).strip().upper()
+            if not upper_sql.startswith(READ_ONLY_STARTS) or FORBIDDEN_SQL_PATTERN.search(upper_sql):
+                raise ValueError("Solo se permiten consultas analíticas de lectura (SELECT, WITH, PIVOT, EXPLAIN, DESCRIBE, SHOW).")
+
+        df, elapsed_ms = self._run_timed_query(cleaned)
+
         # Obtener plan de ejecución físico
-        explain_query = f"EXPLAIN {sql_query}"
+        explain_query = f"EXPLAIN {cleaned}"
         try:
             explain_df = self.con.execute(explain_query).df()
             plan_str = explain_df.to_string()
         except Exception:
             plan_str = "Plan de ejecución no disponible para esta consulta."
-            
-        return df, round(elapsed_ms, 2), plan_str
+
+        return df, elapsed_ms, plan_str
+

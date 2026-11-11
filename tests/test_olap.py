@@ -82,5 +82,30 @@ class TestOLAPEngine(unittest.TestCase):
         self.assertTrue("HASH GROUP BY" in plan.upper() or "READ_PARQUET" in plan.upper(), "El plan físico debe reflejar agregación vectorial")
         self.assertLess(latency, 150.0)
 
+    def test_08_cube_rollup_grouping_sets(self):
+        """Verifica la operación CUBE / ROLLUP con subtotales y total global."""
+        df_cube, latency = self.engine.get_cube_rollup_query()
+
+        self.assertGreater(len(df_cube), 0)
+        self.assertIn("--- TOTAL GLOBAL ---", df_cube["region"].values)
+        self.assertLess(latency, 200.0)
+
+    def test_09_slice_and_dice_default_and_sql_safety(self):
+        """Verifica el metric por defecto en Slice & Dice y el bloqueo de SQL no solo-lectura."""
+        df_default, _ = self.engine.get_slice_and_dice(group_by_col="category")
+        self.assertGreater(len(df_default), 0)
+
+        with self.assertRaises(ValueError):
+            self.engine.get_slice_and_dice(group_by_col="invalid_col")
+
+        with self.assertRaises(ValueError):
+            self.engine.execute_custom_query("DROP VIEW sales_cube;")
+
+    def test_10_empty_filter_list_returns_zero_safely(self):
+        """Verifica que listas de filtro vacías devuelvan 0 filas sin fallar."""
+        kpis = self.engine.get_kpis(filters={"region": []})
+        self.assertEqual(kpis["total_transactions"], 0)
+        self.assertEqual(kpis["total_revenue"], 0)
+
 if __name__ == "__main__":
     unittest.main()

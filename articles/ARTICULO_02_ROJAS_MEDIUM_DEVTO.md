@@ -185,3 +185,4 @@ El bloque `HEALTHCHECK` permite que orquestadores cloud supervisen la disponibil
 - **Repositorio Público en GitHub:** [https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics](https://github.com/halanocca-rojas/olap-duckdb-cloud-analytics)
 - **Aplicación en Vivo (Streamlit SaaS):** [https://duckolap-enterprise.streamlit.app](https://duckolap-enterprise.streamlit.app)
 - **Primer Artículo (Arquitectura OLAP y DuckDB por Halanocca):** [Ver Artículo de Halanocca](ARTICULO_01_HALANOCCA_MEDIUM_DEVTO.md)
+
